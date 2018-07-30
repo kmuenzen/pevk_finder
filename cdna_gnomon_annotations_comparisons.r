@@ -1,5 +1,5 @@
 # This script performs a statistical comparison of PEVK Finder and cDNA/gnomon titin annotations
-
+setwd("~/Desktop/titin_project/ttn_annotations")
 
 # cdna only anotations
 cdna_only_annotations = read.csv("cdna_gnomon_annotations_updated.csv")
@@ -52,57 +52,14 @@ ttest_finder_vs_gnomon <- t.test(gnomon_annotations_subset$X._pevk_of_unions,gno
 
 
 
-
-
-# PEVK Finder means and sd
-finder_mean <- mean(gnomon_and_cdna_annotations$pevk_finder)
-finder_se <- sd(gnomon_and_cdna_annotations$pevk_finder)/sqrt(length(gnomon_and_cdna_annotations$pevk_finder))
-
-# Gnomon + cdna mean
-gnomon_cdna_mean <- mean(gnomon_and_cdna_annotations$annotated)
-gnomon_cdna_se <- sd(gnomon_and_cdna_annotations$annotated)/sqrt(length(gnomon_and_cdna_annotations$annotated))
-
-
-# overall % identification mean
-id_mean <- mean(gnomon_and_cdna_annotations$ident)
-id_se <- sd(gnomon_and_cdna_annotations$ident)/sqrt(length(gnomon_and_cdna_annotations$ident))
-
-
-# cdna only id mean
-cdna_id_mean <- mean(cdna_only_annotations$ident)
-cdna_id_se <- sd(cdna_only_annotations$ident)/sqrt(length(cdna_only_annotations$ident))
-
-
-# gnomon only id mean
-gnomon_id_mean <- mean(gnomon_only_annotations$ident)
-gnomon_id_se <- sd(gnomon_only_annotations$ident)/sqrt(length(gnomon_only_annotations$ident))
-
-
-# missing exons
-missing_mean <- mean(gnomon_and_cdna_annotations$missing)
-missing_se <- sd(gnomon_and_cdna_annotations$missing)/sqrt(length(gnomon_and_cdna_annotations$missing))
-
-
-# novel exons
-novel_mean <- mean(gnomon_and_cdna_annotations$novel)
-novel_se <- sd(gnomon_and_cdna_annotations$novel)/sqrt(length(gnomon_and_cdna_annotations$novel))
-
-
-# cdna novel exons
-cdna_novel_mean <- mean(cdna_only_annotations$novel)
-cdna_novel_se <- sd(cdna_only_annotations$novel)/sqrt(length(cdna_only_annotations$novel))
-
-# gnomo nnovel exons
-gnomon_novel_mean <- mean(gnomon_only_annotations$novel)
-gnomon_novel_se <- sd(gnomon_only_annotations$novel)/sqrt(length(gnomon_only_annotations$novel))
-
-
-
 ##### stat tests
-# 1. total exons identified
-comp_1 = t.test(gnomon_and_cdna_annotations$pevk_finder, gnomon_and_cdna_annotations$annotated, paired=TRUE)
+# 1. PEVK-N exons
+mean_pevkn_pevk_finder = mean(all_annotations$pevk_n_exons)
+mean_pevkn_pevk_finder_se = std.error(all_annotations$pevk_n_exons)
 
-# 2. novel exons
-comp_2 = t.test(gnomon_and_cdna_annotations$pevk_finder, gnomon_and_cdna_annotations$annotated, paired=TRUE)
+# 1. PEVK-C exons
+mean_pevkc_pevk_finder = mean(all_annotations$pevk_c_exons)
+mean_pevkc_pevk_finder_se = std.error(all_annotations$pevk_c_exons)
 
-
+# Var test
+var_test_regions_exons = var.test(all_annotations$pevk_n_exon, all_annotations$pevk_c_exons)
