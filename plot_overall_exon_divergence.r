@@ -1,6 +1,7 @@
 # This code creates plots for visualizing evolutaionry analyses of the orthologous exons, based on the human exon-intron organiation determined by tool
 
 # Set workng directory:
+setwd("~/Desktop/titin_project/ortholog_data")
 
 # Read CSV file into R and convert to CSV
 exon_data <- read.csv("exon_evolutionary_analysis.csv")
@@ -16,6 +17,19 @@ pal1 <- brewer.pal(11, "PiYG")[c(1:4,8:11)]
 pal2 <-rev( brewer.pal(11, "PuOr")[c(1:4,8:11)])
 pal3 <- brewer.pal(11, "RdGy")[c(1:4,8:11)]
 pal4 <- rev(brewer.pal(11, "RdYlBu")[c(1:4,8:11)])
+
+
+###### Create color scale ######
+library(neurobase)
+
+pdf(file="~/Desktop/titin_project/ortholog_data/ortholog_divergence_colorbar.pdf", width=25, height=13, pointsize=22)
+colorbar(c(0,0.125,0.25,0.375,0.5,0.625,0.75,0.875,1.0), pal4, maxleft=0.5)
+#axis(at = c(1,2,3,4,5,6,7,8),side=4, labels=c(0.125,0.25,0.375,0.5,0.625,0.75,0.875,1.0))
+dev.off()
+
+10-28
+################################
+
 
 nt_dist_cols <- pal1[as.numeric(cut(nt_dist, breaks=8))]
 #dn_ds_cols <- pal1[as.numeric(cut(dn_ds, breaks=8))]
