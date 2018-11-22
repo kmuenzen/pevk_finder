@@ -1,6 +1,7 @@
 ###### Performs statistical analyses and creates chart for overall amino acid counts #######
 
 ##### Set working directory
+setwd('~/Desktop/titin_project')
 
 # Read in csv file
 aa_stats <- as.data.frame(read.csv("residue_overall_stats.csv"))

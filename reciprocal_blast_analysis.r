@@ -117,6 +117,6 @@ for (i in 1:length(species_names)) {
 }
 
 
-
+species_names <- c("Phascolarctos_cinereus", "Homo_sapiens", "Ictidomys_tridecemlineatus", "Loxodonta_africana", "Manis_javanica", "Mus_musculus", "Mus_pahari", "Myotis_brandtii", "Ochotona_princeps", "Orcinus_orca", "Oryctolagus_cuniculus", "Pteropus_vampyrus", "Rattus_norvegicus", "Rhinolophus_sinicus", "Sorex_araneus", "Sus_scrofa", "Trichechus_manatus", "Tupaia_chinensis", "Tursiops_truncatus", "Vicugna_pacos", "Acinonyx_jubatus", "Bos_taurus","Ceratotherium_simum", "Condylura_cristata", "Dasypus_novemcinctus", "Eptesicus_fuscus", "Equus_caballus", "Erinaceus_europaeus", "Felis_catus", "Galeopterus_variegatus", "Hipposideros_armiger") 
 
 

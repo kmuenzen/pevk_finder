@@ -7,15 +7,24 @@ library(ggplot2)
 library(reshape2)
 library(plyr)
 library(scales)
+
 #library(geom_tile)
+# Species pevk bundaries
+species_pevk_boundaries <- as.data.frame(read.csv("~/Desktop/new_materials/species_pevk_boundaries.csv",sep=','))
+mean(species_pevk_boundaries$pevkcb_length)
+sd(species_pevk_boundaries$pevkcb_length)
 
-
+setwd("~/Desktop/titin_project/megacc_tests")
 # Loop through all folders in the directory
 all_folders <- list.dirs(recursive=FALSE)
 
 # Create data frame that will hold info on quadrant stats
 quadrant_stats <- data.frame(matrix(nrow=length(all_folders)-1, ncol=4))
 colnames(quadrant_stats) <- c("quad1_mean", "quad2_mean", "quad3_mean", "quad4_mean")
+
+# Create data frame that will hold info for all 9 segments
+quad_9_stats <- data.frame(matrix(nrow=length(all_folders)-1, ncol=9))
+colnames(quad_9_stats) <- c("quadi_mean", "quadii_mean", "quadiii_mean", "quadiv_mean", "quadv_mean", "quadvi_mean", "quadvii_mean", "quadviii_mean", "quadix_mean")
 
 # Loop through all divergence folders
 for (i in 1:(length(all_folders)-1)){
@@ -132,18 +141,55 @@ for (i in 1:(length(all_folders)-1)){
   ##################### Get quadrant stats ##############
   # Add species name to data frame
   rownames(quadrant_stats)[i] <- species_name
-  # f1_136152_136226
+  # Get species pevk boundaries
+  for (row in 1:nrow(species_pevk_boundaries)){
+    current_species_name = species_pevk_boundaries$taxon[row]
+    if (species_name == current_species_name){
+      pevkn_length = species_pevk_boundaries$pevkn_length[row]
+      pevkcb_length = species_pevk_boundaries$pevkcb_length[row]
+    }
+  }
+  
   pevk_length <- length(names_vec)
-  quad_1 <- heatmap_matrix[1:51,][,52:pevk_length]
-  quad_2 <- heatmap_matrix[52:pevk_length,][,52:pevk_length]
-  quad_3 <- heatmap_matrix[1:51,][,1:51]
-  quad_4 <- heatmap_matrix[52:pevk_length,][,1:51]
+  quad_1 <- heatmap_matrix[1:pevkn_length,][,(pevkn_length+1):pevk_length]
+  quad_2 <- heatmap_matrix[(pevkn_length+1):pevk_length,][,(pevkn_length+1):pevk_length]
+  quad_3 <- heatmap_matrix[1:pevkn_length,][,1:pevkn_length]
+  quad_4 <- heatmap_matrix[(pevkn_length+1):pevk_length,][,1:pevkn_length]
+  
+  # Separate substitutions matrix into 9 seqments
+  pevk_n_end <- pevkn_length
+  pevk_ca_start <- pevkn_length+1
+  pevk_ca_end <- nrow(heatmap_matrix)-pevkcb_length
+  pevk_cb_start <- pevk_ca_end + 1
+  pevk_cb_end <- nrow(heatmap_matrix)
+  
+  quad_ix <- heatmap_matrix[1:pevk_n_end,][,pevk_cb_start:pevk_cb_end]
+  quad_vi <- heatmap_matrix[pevk_ca_start:pevk_ca_end,][,pevk_cb_start:pevk_cb_end]
+  quad_iii <- heatmap_matrix[pevk_cb_start:pevk_cb_end,][,pevk_cb_start:pevk_cb_end]
+  quad_viii <- heatmap_matrix[1:pevk_n_end,][,pevk_ca_start:pevk_ca_end]
+  quad_v <- heatmap_matrix[pevk_ca_start:pevk_ca_end,][,pevk_ca_start:pevk_ca_end]
+  quad_ii <- heatmap_matrix[pevk_cb_start:pevk_cb_end,][,pevk_ca_start:pevk_ca_end]
+  quad_vii <- heatmap_matrix[1:pevk_n_end,][,1:pevk_n_end]
+  quad_iv <- heatmap_matrix[pevk_ca_start:pevk_ca_end,][,1:pevk_n_end]
+  quad_i <- heatmap_matrix[pevk_cb_start:pevk_cb_end,][,1:pevk_n_end]
   
   # Add means to data frame
   quadrant_stats$quad1_mean[i] <- mean(quad_1)
   quadrant_stats$quad2_mean[i] <- mean(quad_2)
   quadrant_stats$quad3_mean[i] <- mean(quad_3)
   quadrant_stats$quad4_mean[i] <- mean(quad_4)
+  
+  
+  # Add means to larger data frame
+  quad_9_stats$quadi_mean[i] <- mean(quad_i)
+  quad_9_stats$quadii_mean[i] <- mean(quad_ii)
+  quad_9_stats$quadiii_mean[i] <- mean(quad_iii)
+  quad_9_stats$quadiv_mean[i] <- mean(quad_iv)
+  quad_9_stats$quadv_mean[i] <- mean(quad_v)
+  quad_9_stats$quadvi_mean[i] <- mean(quad_vi)
+  quad_9_stats$quadvii_mean[i] <- mean(quad_vii)
+  quad_9_stats$quadviii_mean[i] <- mean(quad_viii)
+  quad_9_stats$quadix_mean[i] <- mean(quad_ix)
   
   # Scale matrix
   matrix_test <- apply(heatmap_matrix, MARGIN=2, FUN=function(X) (X - min(X))/diff(range(X)))
@@ -164,6 +210,29 @@ for (i in 1:(length(all_folders)-1)){
 overall_quad_matrix <- data.frame(matrix(nrow=2, ncol=4))
 colnames(overall_quad_matrix) <- c("I","II","III","IV")
 rownames(overall_quad_matrix) <- c("mean","stdev")
+
+# one way ANOVA
+subs <- c(quadrant_stats$quad1_mean, quadrant_stats$quad2_mean, quadrant_stats$quad3_mean, quadrant_stats$quad4_mean)
+box <- c(rep("quad1_mean",41), rep("quad2_mean",41), rep("quad3_mean",41), rep("quad4_mean",41))
+box_means <- data.frame(subs,box)
+plot(subs ~ box, data=box_means)
+results <- aov(subs ~ box, data=box_means)
+summary(results)
+tukey.test <- TukeyHSD(results)
+tukey.test
+
+means <- tapply(subs,box,mean)
+se <- tapply(subs,box,std.error)
+means_and_ses <- data.frame(means,se)
+means_and_ses
+
+pdf(file="quadrant_comparison_updated.pdf", width=7, height=8, pointsize=22)
+par(par(mar = c(5, 6, 4, 5) + 0.1))
+barCenters <- barplot(height=means_and_ses$means,ylim=c(0,1.5), space = 0.5,col="darkgrey", beside=T, names.arg=c('I','II','III','IV'), xlab="Quadrant", ylab="Mean Substitutions Per Exon")
+segments(barCenters, means_and_ses$means - means_and_ses$se, barCenters, means_and_ses$means + means_and_ses$se, lwd=1.5)
+arrows(barCenters, means_and_ses$means - means_and_ses$se, barCenters, means_and_ses$means + means_and_ses$se, lwd=1.5, angle=90, code=3, length=0.05)
+dev.off()
+
 
 # T-tests
 I_v_II = t.test(quadrant_stats$quad1_mean, quadrant_stats$quad2_mean, paired = TRUE)
@@ -255,5 +324,232 @@ barCenters <- barplot(height=means, names.arg=names, beside=TRUE, ylim=c(0.0,0.0
 dev.off()
 
 
+############################ Repeat for 9 quad matrix #############
+# Make separate matrix for mean and stdev values:
+overall_quad_9_matrix <- data.frame(matrix(nrow=2, ncol=9))
+colnames(overall_quad_9_matrix) <- c("i","ii","iii","iv","v","vi","vii","viii","ix")
+rownames(overall_quad_9_matrix) <- c("mean","stdev")
+############################## Used for paper ###############################################
+
+# One-way ANOVA
+subs <- c(quad_9_stats$quadi_mean, quad_9_stats$quadii_mean, quad_9_stats$quadiii_mean, quad_9_stats$quadiv_mean, quad_9_stats$quadv_mean, quad_9_stats$quadvi_mean, quad_9_stats$quadvii_mean, quad_9_stats$quadviii_mean, quad_9_stats$quadix_mean)
+box <- c(rep("quadi_mean",41), rep("quadii_mean",41), rep("quadiii_mean",41), rep("quadiv_mean",41), rep("quadv_mean",41), rep("quadvi_mean",41), rep("quadvii_mean",41), rep("quadviii_mean",41), rep("quadix_mean",41))
+box_means <- data.frame(subs,box)
+plot(subs ~ box, data=box_means)
+results <- aov(subs ~ box, data=box_means)
+summary(results)
+tukey.test <- TukeyHSD(results)
+
+tukey.test <- TukeyHSD(results)
+tukey.test
+
+means <- tapply(subs,box,mean)
+se <- tapply(subs,box,std.error)
+means_and_ses <- data.frame(means,se)
+means_and_ses
+
+
+# Plot substitutions
+pdf(file="quadrant_comparison_9.pdf", width=10, height=8, pointsize=22)
+par(par(mar = c(5, 6, 4, 5) + 0.1))
+barCenters <- barplot(height=means_and_ses$means,ylim=c(0,2), col="darkgrey", beside=T, names.arg=c('i','ii','iii','iv','v','vi','vii','viii','ix'), xlab="Box", ylab="Mean substitutions per exon")
+segments(barCenters, means_and_ses$means - means_and_ses$se, barCenters, means_and_ses$means + means_and_ses$se, lwd=1.5)
+arrows(barCenters, means_and_ses$means - means_and_ses$se, barCenters, means_and_ses$means + means_and_ses$se, lwd=1.5, angle=90, code=3, length=0.05)
+dev.off()
+
+#############################################################################
+
+# Means and SDs
+overall_quadi_mean_sd <- c(mean(quad_9_stats$quadi_mean),sd(quad_9_stats$quadi_mean))
+overall_quadii_mean_sd <- c(mean(quad_9_stats$quadii_mean),sd(quad_9_stats$quadii_mean))
+overall_quadiii_mean_sd <- c(mean(quad_9_stats$quadiii_mean),sd(quad_9_stats$quadiii_mean))
+overall_quadiv_mean_sd <- c(mean(quad_9_stats$quadiv_mean),sd(quad_9_stats$quadiv_mean))
+overall_quadv_mean_sd <- c(mean(quad_9_stats$quadv_mean),sd(quad_9_stats$quadv_mean))
+overall_quadvi_mean_sd <- c(mean(quad_9_stats$quadvi_mean),sd(quad_9_stats$quadvi_mean))
+overall_quadvii_mean_sd <- c(mean(quad_9_stats$quadvii_mean),sd(quad_9_stats$quadvii_mean))
+overall_quadviii_mean_sd <- c(mean(quad_9_stats$quadviii_mean),sd(quad_9_stats$quadviii_mean))
+overall_quadix_mean_sd <- c(mean(quad_9_stats$quadix_mean),sd(quad_9_stats$quadix_mean))
+
+
+
+
+# T-tests
+#i_v_ii = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadii_mean, paired=TRUE)
+#i_v_iii = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadiii_mean, paired = TRUE)
+#i_v_iv = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+#i_v_v = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadv_mean, paired = TRUE)
+#i_v_vi = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+#i_v_vii = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#i_v_viii = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#i_v_ix = t.test(quad_9_stats$quadi_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#ii_v_iii = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadiii_mean, paired = TRUE)
+#ii_v_iv = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+#ii_v_v = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadv_mean, paired = TRUE)
+#ii_v_vi = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+#ii_v_vii = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#ii_v_viii = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#ii_v_ix = t.test(quad_9_stats$quadii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#iii_v_iv = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+#iii_v_v = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadv_mean, paired = TRUE)
+#iii_v_vi = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+#iii_v_vii = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#iii_v_viii = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#iii_v_ix = t.test(quad_9_stats$quadiii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#iv_v_v = t.test(quad_9_stats$quadiv_mean, quad_9_stats$quadv_mean, paired = TRUE)
+#iv_v_vi = t.test(quad_9_stats$quadiv_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+#iv_v_vii = t.test(quad_9_stats$quadiv_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#iv_v_viii = t.test(quad_9_stats$quadiv_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#iv_v_ix = t.test(quad_9_stats$quadiv_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#v_v_vi = t.test(quad_9_stats$quadv_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+#v_v_vii = t.test(quad_9_stats$quadv_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#v_v_viii = t.test(quad_9_stats$quadv_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#v_v_ix = t.test(quad_9_stats$quadv_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#vi_v_vii = t.test(quad_9_stats$quadvi_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+#vi_v_viii = t.test(quad_9_stats$quadvi_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#vi_v_ix = t.test(quad_9_stats$quadvi_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#vii_v_viii = t.test(quad_9_stats$quadvii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+#vii_v_ix = t.test(quad_9_stats$quadvii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+#viii_v_ix = t.test(quad_9_stats$quadviii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+
+
+# Get values
+mean_i <- mean(quad_9_stats$quadi_mean)
+mean_ii <- mean(quad_9_stats$quadii_mean)
+mean_iii <- mean(quad_9_stats$quadiii_mean)
+mean_iv <- mean(quad_9_stats$quadiv_mean)
+mean_v <- mean(quad_9_stats$quadv_mean)
+mean_vi <- mean(quad_9_stats$quadvi_mean)
+mean_vii <- mean(quad_9_stats$quadvii_mean)
+mean_viii <- mean(quad_9_stats$quadviii_mean)
+mean_ix <- mean(quad_9_stats$quadix_mean)
+
+stdev_i <- sd(quad_9_stats$quadi_mean)
+stdev_ii <- sd(quad_9_stats$quadii_mean)
+stdev_iii <- sd(quad_9_stats$quadiii_mean)
+stdev_iv <- sd(quad_9_stats$quadiv_mean)
+stdev_v <- sd(quad_9_stats$quadv_mean)
+stdev_vi <- sd(quad_9_stats$quadvi_mean)
+stdev_vii <- sd(quad_9_stats$quadvii_mean)
+stdev_viii <- sd(quad_9_stats$quadviii_mean)
+stdev_ix <- sd(quad_9_stats$quadix_mean)
+
+overall_quad_9_matrix[1,1] <- mean_i
+overall_quad_9_matrix[1,2] <- mean_ii
+overall_quad_9_matrix[1,3] <- mean_iii
+overall_quad_9_matrix[1,4] <- mean_iv
+overall_quad_9_matrix[1,5] <- mean_v
+overall_quad_9_matrix[1,6] <- mean_vi
+overall_quad_9_matrix[1,7] <- mean_vii
+overall_quad_9_matrix[1,8] <- mean_viii
+overall_quad_9_matrix[1,9] <- mean_ix
+
+overall_quad_9_matrix[2,1] <- stdev_i
+overall_quad_9_matrix[2,2] <- stdev_ii
+overall_quad_9_matrix[2,3] <- stdev_iii
+overall_quad_9_matrix[2,4] <- stdev_iv
+overall_quad_9_matrix[2,5] <- stdev_v
+overall_quad_9_matrix[2,6] <- stdev_vi
+overall_quad_9_matrix[2,7] <- stdev_vii
+overall_quad_9_matrix[2,8] <- stdev_viii
+overall_quad_9_matrix[2,9] <- stdev_ix
+
+#
+# x axis: I, II, III, IV (Divergence Heatmap Quadrant)
+# y axis: Divergence
+# bars with stdev plotted
+means <- as.numeric(as.character(overall_quad_9_matrix[1,]))
+names <- colnames(overall_quad_9_matrix)
+errors <- as.numeric(as.character(overall_quad_9_matrix[2,]))
+
+#pdf(file="quadrant_comparison.pdf", width=10, height=10, pointsize=22)
+par(par(mar = c(5, 6, 4, 5) + 0.1))
+barCenters <- barplot(height=means, names.arg=names, beside=TRUE, ylim=c(0,2), xpd=FALSE, xlab="Quadrant", ylab="Mean Divergence")
+segments(barCenters, means - errors, barCenters, means + errors, lwd=1.5)
+arrows(barCenters, means - errors, barCenters, means + errors, lwd=1.5, angle=90, code=3, length=0.05)
+#dev.off()
+
+
+
+
+
+################################## Variance tests ##############################
+
+# Check for normal distribution with shapiro-wilk test:
+shapiro.test(quad_9_stats$quadi_mean) #--> p<0.05
+shapiro.test(quad_9_stats$quadii_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadiii_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadiv_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadv_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadvi_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadvii_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadviii_mean) #--> p>0.05
+shapiro.test(quad_9_stats$quadix_mean) #--> p>0.05
+
+
+# Because most of our data is not normally distributed, we should use either 
+# Levene's test of the Fligner-Killeen test (http://www.sthda.com/english/wiki/f-test-compare-two-variances-in-r)
+
+# Get individual variances
+i_var = var(quad_9_stats$quadi_mean)
+ii_var = var(quad_9_stats$quadii_mean)
+iii_var = var(quad_9_stats$quadiii_mean)
+iv_var = var(quad_9_stats$quadiv_mean)
+v_var = var(quad_9_stats$quadv_mean)
+vi_var = var(quad_9_stats$quadvi_mean)
+vii_var = var(quad_9_stats$quadvii_mean)
+viii_var = var(quad_9_stats$quadviii_mean)
+ix_var = var(quad_9_stats$quadix_mean)
+
+# F-tests
+i_v_ii = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadii_mean, paired=TRUE)
+i_v_iii = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadiii_mean, paired = TRUE)
+i_v_iv = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+i_v_v = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadv_mean, paired = TRUE)
+i_v_vi = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+i_v_vii = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+i_v_viii = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+i_v_ix = var.test(quad_9_stats$quadi_mean, quad_9_stats$quadix_mean, paired = TRUE)
+ii_v_iii = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadiii_mean, paired = TRUE)
+ii_v_iv = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+ii_v_v = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadv_mean, paired = TRUE)
+ii_v_vi = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+ii_v_vii = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+ii_v_viii = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+ii_v_ix = var.test(quad_9_stats$quadii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+iii_v_iv = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadiv_mean, paired = TRUE)
+iii_v_v = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadv_mean, paired = TRUE)
+iii_v_vi = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+iii_v_vii = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+iii_v_viii = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+iii_v_ix = var.test(quad_9_stats$quadiii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+iv_v_v = var.test(quad_9_stats$quadiv_mean, quad_9_stats$quadv_mean, paired = TRUE)
+iv_v_vi = var.test(quad_9_stats$quadiv_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+iv_v_vii = var.test(quad_9_stats$quadiv_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+iv_v_viii = var.test(quad_9_stats$quadiv_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+iv_v_ix = var.test(quad_9_stats$quadiv_mean, quad_9_stats$quadix_mean, paired = TRUE)
+v_v_vi = var.test(quad_9_stats$quadv_mean, quad_9_stats$quadvi_mean, paired = TRUE)
+v_v_vii = var.test(quad_9_stats$quadv_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+v_v_viii = var.test(quad_9_stats$quadv_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+v_v_ix = var.test(quad_9_stats$quadv_mean, quad_9_stats$quadix_mean, paired = TRUE)
+vi_v_vii = var.test(quad_9_stats$quadvi_mean, quad_9_stats$quadvii_mean, paired = TRUE)
+vi_v_viii = var.test(quad_9_stats$quadvi_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+vi_v_ix = var.test(quad_9_stats$quadvi_mean, quad_9_stats$quadix_mean, paired = TRUE)
+vii_v_viii = var.test(quad_9_stats$quadvii_mean, quad_9_stats$quadviii_mean, paired = TRUE)
+vii_v_ix = var.test(quad_9_stats$quadvii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+viii_v_ix = var.test(quad_9_stats$quadviii_mean, quad_9_stats$quadix_mean, paired = TRUE)
+
+
+
+
+# x axis: I, II, III, IV (Divergence Heatmap Quadrant)
+# y axis: Variance
+
+means <- c(i_var,ii_var,iii_var,iv_var,v_var,vi_var,vii_var,viii_var,ix_var)
+names <- colnames(overall_quad_9_matrix)
+
+#pdf(file="quadrant_comparison_variance.pdf", width=10, height=10, pointsize=22)
+par(par(mar = c(5, 6, 4, 5) + 0.1))
+barCenters <- barplot(height=means, names.arg=names, beside=TRUE, ylim=c(0.0,0.06), xpd=FALSE, xlab="Quadrant", ylab="Mean Variance")
+#dev.off()
 
 
