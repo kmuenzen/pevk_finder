@@ -10,7 +10,7 @@ do
     species_name=${species_name#/Users/kmoney/Desktop/titin_project/pevk_mammals/nt_sorted/}
     echo $species_name
 
-    blastn -evalue 1e-6 -query $f -db '/usr/local/ncbi/blast/db/'$species_name"_db" -out '/Users/kmoney/Desktop/triplicate_analysis/species_triplicate_blast/'$species_name"_and_"$species_name"_blast" -outfmt 6
+    blastn -query $f -db '/usr/local/ncbi/blast/db/'$species_name"_db" -out '/Users/kmoney/Desktop/triplicate_analysis/species_triplicate_blast/'$species_name"_and_"$species_name"_blast" -outfmt 6
 
 done
 

@@ -26,6 +26,10 @@ done
 
 
 #-perc_identity 100
-
+# Concatenate all human exons
 echo ">Homo_sapiens_concatenated" >test.fasta
 grep -v ">" Homo_sapiens_nt_sorted.fasta|tr '\n' ' ' | sed -e 's/ //g' >> test.fasta
+
+# Concatenate human hv exons
+echo ">Homo_sapiens_hv_concatenated" > human_hv_only_concatenated.fasta
+grep -v ">" human_hv_only.fasta|tr '\n' ' ' | sed -e 's/ //g' >> human_hv_only_concatenated.fasta

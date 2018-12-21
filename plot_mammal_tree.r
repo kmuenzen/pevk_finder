@@ -6,9 +6,10 @@ library(plotrix)
 
 # Read in mammal tree from timetree.org
 #mammal.tree <- read.tree(url("http://schmitzlab.info/mammalia_species.tre"))
-mammal.tree <- read.tree("mammalia_species.tre")
+mammal.tree <- read.tree("/Users/kmoney/Desktop/titin_project/exon_alignments_named/mammalia_species.tre")
 
 # Create list of the names/lengths ad locations files for each species
+setwd('/Users/kmoney/Desktop/titin_project/pevk_mammals')
 lengths_and_ratios = list.files(pattern="test_lengths_and_ratios")
 locations = list.files(pattern="test_locations")
 
@@ -51,6 +52,9 @@ mammal.tree <- ladderize(compare$phy)
 mammal.tree$edge.length <- mammal.tree$edge.length*0.25
 
 # Plot the plain mammal tree
-pdf(file="mammal_tree.pdf", width=15, height=30, pointsize=30)
+pdf(file="mammal_tree.pdf", width=11, height=200, pointsize=30)
 plot(mammal.tree)
 dev.off()
+
+
+

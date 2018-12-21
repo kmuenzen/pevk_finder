@@ -10,24 +10,26 @@ library(scales)
 
 #library(geom_tile)
 # Species pevk bundaries
-species_pevk_boundaries <- as.data.frame(read.csv("~/Desktop/new_materials/species_pevk_boundaries.csv",sep=','))
+species_pevk_boundaries <- as.data.frame(read.csv("~/Desktop/titin_project/species_pevk_boundaries.csv",sep=','))
 mean(species_pevk_boundaries$pevkcb_length)
 sd(species_pevk_boundaries$pevkcb_length)
 
 setwd("~/Desktop/titin_project/megacc_tests")
 # Loop through all folders in the directory
 all_folders <- list.dirs(recursive=FALSE)
+all_folders <- all_folders[ grepl("divergence", all_folders)]
 
 # Create data frame that will hold info on quadrant stats
-quadrant_stats <- data.frame(matrix(nrow=length(all_folders)-1, ncol=4))
+quadrant_stats <- data.frame(matrix(nrow=length(all_folders), ncol=4))
 colnames(quadrant_stats) <- c("quad1_mean", "quad2_mean", "quad3_mean", "quad4_mean")
 
 # Create data frame that will hold info for all 9 segments
-quad_9_stats <- data.frame(matrix(nrow=length(all_folders)-1, ncol=9))
+quad_9_stats <- data.frame(matrix(nrow=length(all_folders), ncol=9))
 colnames(quad_9_stats) <- c("quadi_mean", "quadii_mean", "quadiii_mean", "quadiv_mean", "quadv_mean", "quadvi_mean", "quadvii_mean", "quadviii_mean", "quadix_mean")
 
 # Loop through all divergence folders
-for (i in 1:(length(all_folders)-1)){
+for (i in 1:(length(all_folders))){
+  print(i)
   # Get name of current folder
   current_folder = all_folders[i]
   
@@ -40,6 +42,14 @@ for (i in 1:(length(all_folders)-1)){
   
   # Read in CSV files
   divergence_files <- list.files(pattern=".csv")
+  
+  # Read in length file for species
+  exon_length_filename <- paste("~/Desktop/titin_project/pevk_mammals/",species_name,"_test_lengths_and_ratios_10_0.54_12.csv",sep='')
+  pevk_lengths_and_ratios <- read.csv(exon_length_filename, header=F)
+  pevk_lengths_and_ratios <- t(pevk_lengths_and_ratios)
+  pevk_lengths_and_ratios <- data.frame(pevk_lengths_and_ratios)
+  rownames(pevk_lengths_and_ratios) <- 1:nrow(pevk_lengths_and_ratios)
+  colnames(pevk_lengths_and_ratios) <- c("name","length","percent_pevk")
   
   # Create a data frame for file names to organize in ascending order
   names <- data.frame(matrix(ncol=3, nrow=1))
@@ -197,9 +207,9 @@ for (i in 1:(length(all_folders)-1)){
   pal <- brewer.pal(11,"PiYG")[c(1:4,8:11)]
   
   # Make heatmap
-  pdf(paste(species_name,"_divergence.pdf",sep=''))
-  test_heatmap <- heatmap(matrix_test, Rowv=NA, Colv=NA, col=pal, scale="column", labRow=c(1:nrow(names_ordered)), labCol=c(1:nrow(names_ordered)), cexRow=0.6, cexCol=0.6, xlab=paste(species_name," PEVK Finder Exons", sep=''), ylab=paste(species_name," PEVK Finder Exons", sep=''), margins=c(5,5))
-  dev.off()
+  #pdf(paste(species_name,"_divergence.pdf",sep=''))
+  #test_heatmap <- heatmap(matrix_test, Rowv=NA, Colv=NA, col=pal, scale="column", labRow=c(1:nrow(names_ordered)), labCol=c(1:nrow(names_ordered)), cexRow=0.6, cexCol=0.6, xlab=paste(species_name," PEVK Finder Exons", sep=''), ylab=paste(species_name," PEVK Finder Exons", sep=''), margins=c(5,5))
+  #dev.off()
   #(ggplot_heatmap <- ggplot(heatmap_matrix_rescaled, aes(rev(variable), exon_id)) + geom_tile(aes(fill = value), colour = "white") + scale_fill_gradient(low = "steelblue", high = "white"))
   setwd("~/Desktop/titin_project/megacc_tests")
 }
@@ -329,6 +339,7 @@ dev.off()
 overall_quad_9_matrix <- data.frame(matrix(nrow=2, ncol=9))
 colnames(overall_quad_9_matrix) <- c("i","ii","iii","iv","v","vi","vii","viii","ix")
 rownames(overall_quad_9_matrix) <- c("mean","stdev")
+
 ############################## Used for paper ###############################################
 
 # One-way ANOVA

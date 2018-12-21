@@ -11,7 +11,7 @@
 #	c. Incorporate trait values into a phylogeny (or multiple phylogenies), do ancestral state reconstructions for different PEVK characteristics
 
 ##### Set working directory
-
+setwd("~/Desktop/titin_project/pevk_mammals")
 # a. Visual exon organization. This code will be similar to the code used for exon plots during control testing
 
 library(plotrix)
