@@ -47,8 +47,8 @@ dev.off()
 
 # Panda dot
 panda_ttn = toString(as.character(readDNAStringSet("~/Desktop/paper_submission_materials/data/ttn_seqs/Ailuropoda_melanoleuca_ttn.fasta")))
-seq1 = substr(panda_ttn,142239,162172)
-seq2 = substr(panda_ttn,142239,162172)
+seq1 = substr(panda_ttn,136454,157867)
+seq2 = substr(panda_ttn,136454,157867)
 panda_dot <- dotPlotg(seq1, seq2, wsize=7)
 png(filename = "~/Desktop/titin_project/pevkc_dotplots/panda_dot.png")
 panda_dot + labs(x="Panda PEVK-C", y = "Panda PEVK-C")
@@ -206,8 +206,8 @@ dev.off()
 
 # Shrewmouse dot
 shrewmouse_ttn = toString(as.character(readDNAStringSet("~/Desktop/paper_submission_materials/data/ttn_seqs/Mus_pahari_ttn.fasta")))
-seq1 = substr(shrewmouse_ttn,176127,205810)
-seq2 = substr(shrewmouse_ttn,176127,205810)
+seq1 = substr(shrewmouse_ttn,143001,161955)
+seq2 = substr(shrewmouse_ttn,143001,161955)
 shrewmouse_dot <- dotPlotg(seq1, seq2, wsize=7)
 png(filename = "~/Desktop/titin_project/pevkc_dotplots/shrewmouse_dot.png")
 shrewmouse_dot + labs(x="Shrewmouse PEVK-C", y = "Shrewmouse PEVK-C")
@@ -272,8 +272,8 @@ dev.off()
 
 # Orca dot
 orca_ttn = toString(as.character(readDNAStringSet("~/Desktop/paper_submission_materials/data/ttn_seqs/Orcinus_orca_ttn.fasta")))
-seq1 = substr(orca_ttn,176127,205810)
-seq2 = substr(orca_ttn,176127,205810)
+seq1 = substr(orca_ttn,148206,168011)
+seq2 = substr(orca_ttn,148206,168011)
 orca_dot <- dotPlotg(seq1, seq2, wsize=7)
 png(filename = "~/Desktop/titin_project/pevkc_dotplots/orca_dot.png")
 orca_dot + labs(x="Orca PEVK-C", y = "Orca PEVK-C")
@@ -417,5 +417,6 @@ alpaca_dot + labs(x="Alpaca PEVK-C", y = "Alpaca PEVK-C")
 dev.off()
 
 
+####### LINE analysis #########
 
 

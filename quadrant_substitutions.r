@@ -20,12 +20,12 @@ all_folders <- list.dirs(recursive=FALSE)
 all_folders <- all_folders[ grepl("divergence", all_folders)]
 
 # Create data frame that will hold info on quadrant stats
-quadrant_stats <- data.frame(matrix(nrow=length(all_folders), ncol=4))
-colnames(quadrant_stats) <- c("quad1_mean", "quad2_mean", "quad3_mean", "quad4_mean")
+quadrant_stats <- data.frame(matrix(nrow=length(all_folders), ncol=8))
+colnames(quadrant_stats) <- c("quad1_mean", "quad2_mean", "quad3_mean", "quad4_mean","quad1_length_sq", "quad2_length_sq", "quad3_length_sq", "quad4_length_sq")
 
 # Create data frame that will hold info for all 9 segments
-quad_9_stats <- data.frame(matrix(nrow=length(all_folders), ncol=9))
-colnames(quad_9_stats) <- c("quadi_mean", "quadii_mean", "quadiii_mean", "quadiv_mean", "quadv_mean", "quadvi_mean", "quadvii_mean", "quadviii_mean", "quadix_mean")
+quad_9_stats <- data.frame(matrix(nrow=length(all_folders), ncol=18))
+colnames(quad_9_stats) <- c("quadi_mean", "quadii_mean", "quadiii_mean", "quadiv_mean", "quadv_mean", "quadvi_mean", "quadvii_mean", "quadviii_mean", "quadix_mean","quadi_length_sq", "quadii_length_sq", "quadiii_length_sq", "quadiv_length_sq", "quadv_length_sq", "quadvi_length_sq", "quadvii_length_sq", "quadviii_length_sq", "quadix_length_sq")
 
 # Loop through all divergence folders
 for (i in 1:(length(all_folders))){
@@ -42,14 +42,6 @@ for (i in 1:(length(all_folders))){
   
   # Read in CSV files
   divergence_files <- list.files(pattern=".csv")
-  
-  # Read in length file for species
-  exon_length_filename <- paste("~/Desktop/titin_project/pevk_mammals/",species_name,"_test_lengths_and_ratios_10_0.54_12.csv",sep='')
-  pevk_lengths_and_ratios <- read.csv(exon_length_filename, header=F)
-  pevk_lengths_and_ratios <- t(pevk_lengths_and_ratios)
-  pevk_lengths_and_ratios <- data.frame(pevk_lengths_and_ratios)
-  rownames(pevk_lengths_and_ratios) <- 1:nrow(pevk_lengths_and_ratios)
-  colnames(pevk_lengths_and_ratios) <- c("name","length","percent_pevk")
   
   # Create a data frame for file names to organize in ascending order
   names <- data.frame(matrix(ncol=3, nrow=1))
@@ -155,6 +147,7 @@ for (i in 1:(length(all_folders))){
   for (row in 1:nrow(species_pevk_boundaries)){
     current_species_name = species_pevk_boundaries$taxon[row]
     if (species_name == current_species_name){
+      overall_start = species_pevk_boundaries$start_index[row]
       pevkn_length = species_pevk_boundaries$pevkn_length[row]
       pevkcb_length = species_pevk_boundaries$pevkcb_length[row]
     }
@@ -206,6 +199,54 @@ for (i in 1:(length(all_folders))){
   # Color palette
   pal <- brewer.pal(11,"PiYG")[c(1:4,8:11)]
   
+  # Read in length file for species
+  exon_length_filename <- paste("~/Desktop/titin_project/pevk_mammals/",species_name,"_test_lengths_and_ratios_10_0.54_12.csv",sep='')
+  pevk_lengths_and_ratios <- read.csv(exon_length_filename, header=F)
+  pevk_lengths_and_ratios <- t(pevk_lengths_and_ratios)
+  pevk_lengths_and_ratios <- data.frame(pevk_lengths_and_ratios)
+  rownames(pevk_lengths_and_ratios) <- 1:nrow(pevk_lengths_and_ratios)
+  colnames(pevk_lengths_and_ratios) <- c("name","length","percent_pevk")
+  
+  # Extract locations and append to pevk_lengths_and_ratios
+  new_starts = c()
+  new_ends = c()
+  for (p in 1:nrow(pevk_lengths_and_ratios))	{
+    exon_name <- as.character(pevk_lengths_and_ratios[p,1])
+    split <- strsplit(exon_name, "_")
+    location <- split[[1]][3]
+    location <- strsplit(location, ":")
+    match_start <- as.numeric(location[[1]][1])
+    match_end <- as.numeric(location[[1]][2])
+    new_starts <- append(new_starts, match_start)
+    new_ends <- append(new_ends, match_end)
+  }
+  
+  # Add a new column called test_location to the data frame
+  pevk_lengths_and_ratios$start <- new_starts
+  pevk_lengths_and_ratios$end <- new_ends
+  pevk_lengths_and_ratios <- pevk_lengths_and_ratios[order(pevk_lengths_and_ratios$start),]
+  rownames(pevk_lengths_and_ratios) <- 1:nrow(pevk_lengths_and_ratios)
+  
+  pevkn_nt_length <- sum((as.numeric(as.vector(pevk_lengths_and_ratios$length)))[overall_start:pevk_n_end])
+  pevkc_nt_length <- sum((as.numeric(as.vector(pevk_lengths_and_ratios$length)))[pevk_ca_start:pevk_cb_end])
+  pevkca_nt_length <- sum((as.numeric(as.vector(pevk_lengths_and_ratios$length)))[pevk_ca_start:pevk_ca_end])
+  pevkcb_nt_length <- sum((as.numeric(as.vector(pevk_lengths_and_ratios$length)))[pevk_cb_start:pevk_cb_end])
+  
+  quadrant_stats$quad1_length_sq[i] <- pevkn_nt_length*pevkc_nt_length
+  quadrant_stats$quad2_length_sq[i] <- pevkc_nt_length*pevkc_nt_length
+  quadrant_stats$quad3_length_sq[i] <- pevkn_nt_length*pevkn_nt_length
+  quadrant_stats$quad4_length_sq[i] <- pevkc_nt_length*pevkn_nt_length
+
+  quad_9_stats$quadi_length_sq[i] <- pevkn_nt_length*pevkcb_nt_length
+  quad_9_stats$quadii_length_sq[i] <- pevkca_nt_length*pevkcb_nt_length
+  quad_9_stats$quadiii_length_sq[i] <- pevkcb_nt_length*pevkcb_nt_length
+  quad_9_stats$quadiv_length_sq[i] <- pevkn_nt_length*pevkca_nt_length
+  quad_9_stats$quadv_length_sq[i] <- pevkca_nt_length*pevkca_nt_length
+  quad_9_stats$quadvi_length_sq[i] <- pevkcb_nt_length*pevkca_nt_length
+  quad_9_stats$quadvii_length_sq[i] <- pevkn_nt_length*pevkn_nt_length
+  quad_9_stats$quadviii_length_sq[i] <- pevkca_nt_length*pevkn_nt_length
+  quad_9_stats$quadix_length_sq[i] <- pevkcb_nt_length*pevkn_nt_length
+
   # Make heatmap
   #pdf(paste(species_name,"_divergence.pdf",sep=''))
   #test_heatmap <- heatmap(matrix_test, Rowv=NA, Colv=NA, col=pal, scale="column", labRow=c(1:nrow(names_ordered)), labCol=c(1:nrow(names_ordered)), cexRow=0.6, cexCol=0.6, xlab=paste(species_name," PEVK Finder Exons", sep=''), ylab=paste(species_name," PEVK Finder Exons", sep=''), margins=c(5,5))

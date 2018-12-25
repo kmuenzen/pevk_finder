@@ -6,10 +6,10 @@ library(plotrix)
 
 # Read in mammal tree from timetree.org
 #mammal.tree <- read.tree(url("http://schmitzlab.info/mammalia_species.tre"))
-mammal.tree <- read.tree("/Users/kmoney/Desktop/titin_project/exon_alignments_named/mammalia_species.tre")
+mammal.tree <- read.tree("/Users/kathleenmuenzen/Desktop/titin_project/exon_alignments_named/mammalia_species.tre")
 
 # Create list of the names/lengths ad locations files for each species
-setwd('/Users/kmoney/Desktop/titin_project/pevk_mammals')
+setwd('/Users/kathleenmuenzen/Desktop/titin_project/pevk_mammals')
 lengths_and_ratios = list.files(pattern="test_lengths_and_ratios")
 locations = list.files(pattern="test_locations")
 
@@ -38,7 +38,9 @@ pevk_data[24,1] <- "Monachus_schauinslandi"
 pevk_data[41,1] <- "Tupaia_belangeri"
 
 #if (species_name != "Sorex_araneus" && species_name != "Physeter_catodon" && species_name != "Leptonychotes_weddellii") {
-pevk_data <- rbind(pevk_data[1:15,], pevk_data[17:21,], pevk_data[24:31,], pevk_data[33:37,], pevk_data[39:44,])
+#pevk_data <- rbind(pevk_data[1:15,], pevk_data[17:21,], pevk_data[24:31,], pevk_data[33:37,], pevk_data[39:44,])
+pevk_data <- rbind(pevk_data[1:15,], pevk_data[17:31,], pevk_data[33:37,], pevk_data[39:44,])
+
 
 # Set row names to taxon names
 rownames(pevk_data) <- pevk_data$taxon
@@ -52,9 +54,62 @@ mammal.tree <- ladderize(compare$phy)
 mammal.tree$edge.length <- mammal.tree$edge.length*0.25
 
 # Plot the plain mammal tree
-pdf(file="mammal_tree.pdf", width=11, height=200, pointsize=30)
-plot(mammal.tree)
+#pdf(file="mammal_tree.pdf", width=11, height=200, pointsize=30)
+#plot(mammal.tree)
+#dev.off()
+
+####### Plot repeats with tree ########
+# This script creates a phylogenetic tree with information about tandem repeats and LINEs plotted alongside the tree
+# Kathleen Muenzen, 12/21/18, kmuenzen@uw.edu
+
+# Read in repeat data
+repeat_data <- read.csv("/Users/kathleenmuenzen/Desktop/final_ttn_submission/dup_trip_str_classifications.csv",stringsAsFactors = FALSE)
+repeat_data[23,1] <- "Monachus_schauinslandi"
+repeat_data[38,1] <- "Tupaia_belangeri"
+rownames(repeat_data) <- repeat_data$species
+
+repeat_data[match(mammal.tree$tip.label, repeat_data$species),]
+
+# Create clean vector for plotting
+species_order = c("Ornithorhynchus_anatinus","Phascolarctos_cinereus","Sarcophilus_harrisii","Dasypus_novemcinctus",
+                  "Loxodonta_africana","Trichechus_manatus","Tupaia_belangeri","Galeopterus_variegatus",
+                  "Pongo_abelii","Homo_sapiens","Pan_troglodytes","Ochotona_princeps","Oryctolagus_cuniculus",
+                  "Ictidomys_tridecemlineatus","Castor_canadensis","Rattus_norvegicus","Mus_pahari","Mus_musculus",
+                  "Condylura_cristata","Erinaceus_europaeus","Pteropus_vampyrus","Rhinolophus_sinicus",
+                  "Hipposideros_armiger","Eptesicus_fuscus","Myotis_davidii","Myotis_lucifugus","Myotis_brandtii",
+                  "Vicugna_pacos","Sus_scrofa","Bos_taurus","Orcinus_orca","Tursiops_truncatus","Ceratotherium_simum",
+                  "Equus_caballus","Manis_javanica","Acinonyx_jubatus","Felis_catus","Ursus_maritimus",
+                  "Ailuropoda_melanoleuca","Monachus_schauinslandi","Odobenus_rosmarus")
+
+# Match data frame order with species order
+repeat_data = repeat_data[match(species_order, repeat_data$species),]
+
+# Create clean word vector for plotting repeat data
+repeat_text = c()
+for (p in 1:nrow(repeat_data)){
+  repeat_type = repeat_data$repeat_type[p]
+  repeat_type_subbed = gsub(";",", ",repeat_type)
+  if (is.na(repeat_type_subbed)){
+    repeat_text = c(repeat_text,' ')
+  }
+  else{
+    repeat_text = c(repeat_text,repeat_type_subbed)
+  }
+}
+repeat_text = rev(repeat_text)
+
+# Create text vector for LINE analysis
+human_lines <- c(rep(' ',8),'LINE-1 x 1','LINE-1 x 2','LINE-1 x 1',rep(' ',30))
+human_lines = rev(human_lines)
+
+pdf(file="~/Desktop/mammal_tree.pdf", width=15, height=25, pointsize=20)
+plot(mammal.tree,y.lim=50,x.lim=150)
+text(repeat_text,x=rep.int(100,41),y=seq(from=1,to=42,by=1))
+text(human_lines,x=rep.int(130,41),y=seq(from=1,to=42,by=1))
 dev.off()
+
+
+
 
 
 
