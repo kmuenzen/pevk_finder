@@ -117,9 +117,9 @@ for (i in (1:length(percent_e))){
 }
 
 
-#pdf(file="percent_e_stats.pdf", width=30, height=10, pointsize=22)
+pdf(file="percent_e_stats.pdf", width=30, height=10, pointsize=22)
 
 par(mar=c(5,5,4,8))
 barplot(percent_e,ylim=c(0, 0.7),xlab="Human PEVK Exons", ylab="Percent Glutamate (E) Per Exon")
 
-#dev.off()
+dev.off()

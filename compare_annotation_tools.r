@@ -1,4 +1,5 @@
 ##### Set working directory
+setwd("~/Desktop/titin_project/ttn_annotations")
 
 library(ggplot2)
 

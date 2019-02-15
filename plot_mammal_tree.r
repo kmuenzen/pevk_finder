@@ -99,7 +99,7 @@ for (p in 1:nrow(repeat_data)){
 repeat_text = rev(repeat_text)
 
 # Create text vector for LINE analysis
-human_lines <- c(rep(' ',8),'LINE-1 x 1','LINE-1 x 2','LINE-1 x 1',rep(' ',30))
+human_lines <- c(rep(' ',1),'Identical Seqs x 2',rep(' ',6),'LINE-1 x 1','LINE-1 x 2','LINE-1 x 1',rep(' ',30))
 human_lines = rev(human_lines)
 
 pdf(file="~/Desktop/mammal_tree.pdf", width=15, height=25, pointsize=20)
