@@ -89,12 +89,12 @@ def frame_define(seq):
             break
 
 """
-Helper function find_pevk accepts an amino acid sequence without "*"s (seq), the start location of the seq
+Helper function generate_candidate_seqs accepts an amino acid sequence without "*"s (seq), the start location of the seq
 within the frame (seq_start) and the end location of the seq within the frame (seq_end), and returns a raw
 list of candidate exons
 """
 
-def find_pevk(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio):
+def generate_candidate_seqs(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio):
     # Find the start and end coordinates of the corresponding nucleotide sequence.
     if identification == "frame_f1":
         nuc_ref_start = seq_start*3
@@ -354,7 +354,7 @@ def pevk_finder(nt_seq, length, in_ratio, min_length, outpath, optional_outputs)
 
 
         ################################## Main Code ##############################
-        # Loop through the entire protein sequence, extracting each region between stop codons and running it through find_pevk
+        # Loop through the entire protein sequence, extracting each region between stop codons and running it through generate_candidate_seqs
         
         # Create empty lists for storing final PEVK exons
         #prot_regions = []
@@ -376,8 +376,8 @@ def pevk_finder(nt_seq, length, in_ratio, min_length, outpath, optional_outputs)
                     seq = str(prot_seq[seq_start:seq_end]) # get the actual AA sequence of the frame
 
 
-                    ### Run the sequence through the find_pevk helper function to find PEVK exons!
-                    pevk_seqs = find_pevk(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio)
+                    ### Run the sequence through the generate_candidate_seqs helper function to find PEVK exons!
+                    pevk_seqs = generate_candidate_seqs(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio)
 
 
 
