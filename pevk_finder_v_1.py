@@ -61,6 +61,231 @@ import numpy as np
 import os
 
 
+"""
+Helper function pevk_counter accepts a string of amino acids (frame) and returns the int number of
+P, E, V and K (and A) in the string.
+"""
+
+def pevk_counter(frame):
+    counter = 0
+    for a in frame:
+        if a == "P" or a == "E" or a == "V" or a == "K" or a == "A":
+            counter += 1
+    return counter
+
+
+"""
+Helper function frame_define accepts a string of amino acids (seq) and returns the number of steps 
+it takes to reach the first "*" in the string
+"""
+
+def frame_define(seq):
+    counter = 0
+    for i in seq:
+        if i != "*":
+            counter += 1
+        if i == "*":
+            return counter
+            break
+
+"""
+Helper function find_pevk accepts an amino acid sequence without "*"s (seq), the start location of the seq
+within the frame (seq_start) and the end location of the seq within the frame (seq_end), and returns a raw
+list of candidate exons
+"""
+
+def find_pevk(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio):
+    # Find the start and end coordinates of the corresponding nucleotide sequence.
+    if identification == "frame_f1":
+        nuc_ref_start = seq_start*3
+        nuc_ref_end = seq_end*3
+    if identification == "frame_f2":
+        nuc_ref_start = seq_start*3 + 1
+        nuc_ref_end = seq_end*3 + 1
+    if identification == "frame_f3":
+        nuc_ref_start = seq_start*3 + 2
+        nuc_ref_end = seq_end*3 + 2
+    
+
+    # Define the nucleotide sequence that correponds with the coordinates found above
+    nuc_ref_seq = str(nucleotide_seq[nuc_ref_start:nuc_ref_end])
+
+
+    # Initialize the list of lists that will hold the results in the following format: [spliced_seq, absolute_seq_start, absolute_seq_end]
+    result = []
+
+    ### CASE 1: The length of the sliding frame length is either less than or equal to the seq length
+    if input_frame_length > len(seq) or input_frame_length == len(seq):
+        result = "x" # result becomes the string "x", which will alow the code to ignore this sequence and move on to the next one
+        return result # return the result
+
+
+    ### CASE 2: The length of the input seq is greater than the sliding frame length
+    if len(seq) > input_frame_length:
+        primary_positions = [] # list that will hold the start positions of each each PEVK frame in the forward direction
+        
+        # Fill the primary_positions list the start locations of each frame with PEVK ratio greater than the ratio parameter
+        for i in range(0, len(seq) - input_frame_length):
+            frame = seq[i:i+input_frame_length]
+            counts = pevk_counter(frame)
+            ratio = float(counts)/float(input_frame_length)
+            if ratio >= PEVK_ratio:
+                primary_positions.append(i)
+
+        ### CASE 2a: There are no frames with high PEVK content in the sequence
+        if primary_positions == []:
+            result = "x" # The result is nullified, and the code will move on the next sequence
+            return result
+
+        ### CASE 2b: There is at least one frame with a high PEVK ratio
+        else:
+            # Create a list that contains distinct groupings of high PEVK ratio groupings
+            group_positions = [] # the start points of each grouping
+            groupings = [] # the list that will contain the actual groups
+            temp_min = primary_positions[0]
+            group_positions.append(temp_min)
+            for i in range(1, len(primary_positions)-1):
+                if primary_positions[i] - temp_min <= input_frame_length:
+                    temp_min = temp_min
+                else:
+                    temp_min = primary_positions[i]
+                    group_positions.append(temp_min)
+            
+            # If there is only one starting position:
+            if len(group_positions) == 1:
+                groupings = [primary_positions]
+            
+            # If there are multiple starting positions:
+            else:
+                # Define the groups:
+                for i in range(0,len(group_positions)):
+                    if i < len(group_positions) - 1:
+                        current_position = group_positions[i]
+                        next_position = group_positions[i+1]
+                        current_index = primary_positions.index(current_position)
+                        next_index = primary_positions.index(next_position)
+                        groupings.append(primary_positions[current_index:next_index])
+                    
+                    # Once we have arrived at the last item in group_positions:
+                    else:
+                        current_position = group_positions[i]
+                        current_index = primary_positions.index(current_position)
+                        groupings.append(primary_positions[current_index:])
+            
+
+            # Go through each sublist in groupings and find donor/acceptor splice sites:
+            for j in range(0, len(groupings)):
+                # Initialize list that will hold candidate donor sites (end of exon)
+                donor_sites = []
+                
+                # Initialize list that will hold candidate acceptor sites (start of exon)
+                acceptor_sites = []
+                
+                # Initialize the list that will hold difference in location between possible donor start sites and the PEVK region start site
+                start_differences = []
+                
+                # Start with the list of primary positions. Find the median of that list.
+                AA_starting_point = int(statistics.median(groupings[j]))
+                
+                # Where is this in the local nucleotide sequence?
+                NT_starting_point = AA_starting_point*3 # This is the first letter of the codon encoding the median AA in the high PEVK region
+                
+                # First go backwards to look for the ACCEPTOR splice site
+                for i in range(NT_starting_point,0,-1):
+                    # The rightmost letter (first letter of a codon) should be a G
+                    if i%3 == 0 and nuc_ref_seq[i] == "G":
+                        
+                        # The leftmost letter (last letter of a codon) should be an A
+                        if nuc_ref_seq[i-1] == "A":
+                            
+                            # If both of these requirements are met, add the location of G to acceptor_sites
+                            acceptor_sites.append(i)
+                
+                # Is the acceptor site list empty? If so, this is not a real PEVK sequence!
+                if acceptor_sites == []:
+                    result.append("x")
+                    continue
+                
+                # If there is an acceptor site:
+                else:
+                    # We now want to know which acceptor site is closest to the first AA of primary positions. First define the starting position:
+                    PEVK_start = NT_starting_point
+                    
+                    # Then find the closest acceptor site to the start of the PEVK region:
+                    for x in acceptor_sites:
+                        diff = abs(PEVK_start - x)
+                        start_differences.append(diff)
+                    
+                    # The best guess G of the start splice site is the min of the differences
+                    acceptor_g_location = acceptor_sites[start_differences.index(min(start_differences))]
+                    
+                    # Now go forward to look for the DONOR splice site
+                    for i in range(NT_starting_point, len(nuc_ref_seq)-3):
+                        # The leftmost letter (third letter of a codon) should be an A
+                        if i%3 == 2 and nuc_ref_seq[i] == "A":
+                            
+                            # The second letter (first letter of a codon) should be a G
+                            if (i+1)%3 == 0 and nuc_ref_seq[i+1] == "G":
+                                
+                                # The third letter (second letter of a codon) should be a G
+                                if (i+2)%3 == 1 and nuc_ref_seq[i+2] == "G":
+                                    
+                                    # The fourth letter (third letter of a codon) should be a T
+                                    if (i+3)%3 == 2 and nuc_ref_seq[i+3] == "T":
+                                        
+                                        # If all of these requirements are met, add the location of the first G to donor sites:
+                                        donor_sites.append(i+1)
+                    
+
+                    # If there are no donor sites:
+                    if donor_sites == []:
+                        result.append("x")
+                        continue
+                    
+
+                    # If there is at least one donor site
+                    if donor_sites != []:
+
+                        # If there is only one possible donor site:
+                        if len(donor_sites) == 1:
+                            
+                            # This becomes the acceptor location
+                            donor_g1_location = donor_sites[0]
+                        
+                        # If there is more than one possible acceptor site:
+                        if len(donor_sites) > 1:
+                            end_differences = []
+                            PEVK_end = (groupings[j][-1]+input_frame_length)*3
+                            for x in donor_sites:
+                                diff = abs(PEVK_end - x)
+                                end_differences.append(diff)
+                            
+                            # The best guess G of the start splice site is the min of differences
+                            donor_g1_location = donor_sites[end_differences.index(min(end_differences))]
+                        
+                        # Now extract the region between the donor and acceptor sites
+                        final_seq =  str(Seq(nuc_ref_seq[acceptor_g_location+3:donor_g1_location]).translate())
+
+                        # Define the relative start and end positions (within the local amino acid sequence) of the final sequence
+                        relative_seq_start = (acceptor_g_location/3)+1
+                        relative_seq_end = donor_g1_location/3
+                        
+                        # Define the relative start and end positions of the sequence within the whole amino acid sequence
+                        absolute_seq_start = seq_start + relative_seq_start
+                        absolute_seq_end = seq_start + relative_seq_end
+
+                        # Define the full sequence with no splice sites
+                        final_seq = seq[relative_seq_start:relative_seq_end]
+                        # Put the sequence and the start and end locations in the result list
+                        result.append((final_seq, absolute_seq_start, absolute_seq_end))
+
+        # Woohoo!
+        return result
+
+'''
+pevk_finder produces a final list of predicated PEVK exons and generates the final exon library files
+'''
+
 def pevk_finder(nt_seq, length, in_ratio, min_length, outpath, optional_outputs):
 
     # Create nucleotide sequence objects
@@ -128,228 +353,6 @@ def pevk_finder(nt_seq, length, in_ratio, min_length, outpath, optional_outputs)
         PEVK_ratio = float(in_ratio) # read in minimum PEVK ratio
 
 
-        ##### Define Helper Funtions #####
-        """
-        Helper function pevk_counter accepts a string of amino acids (frame) and returns the int number of
-        P, E, V and K (and A) in the string.
-        """
-
-        def pevk_counter(frame):
-            counter = 0
-            for a in frame:
-                if a == "P" or a == "E" or a == "V" or a == "K" or a == "A":
-                    counter += 1
-            return counter
-
-
-        """
-        Helper function frame_define accepts a string of amino acids (seq) and counts the number of steps 
-        it takes to reach the first "*" in teh string
-        """
-
-        def frame_define(seq):
-            counter = 0
-            for i in seq:
-                if i != "*":
-                    counter += 1
-                if i == "*":
-                    return counter
-                    break
-
-
-        """
-        Helper function find_pevk accepts an amino acid sequence without "*"s (seq), the start location of the seq
-        within the frame (seq_start) and the end location of the seq within the frame (seq_end)
-        """
-
-        def find_pevk(seq, seq_start, seq_end):
-            # Find the start and end coordinates of the corresponding nucleotide sequence.
-            if identification == "frame_f1":
-                nuc_ref_start = seq_start*3
-                nuc_ref_end = seq_end*3
-            if identification == "frame_f2":
-                nuc_ref_start = seq_start*3 + 1
-                nuc_ref_end = seq_end*3 + 1
-            if identification == "frame_f3":
-                nuc_ref_start = seq_start*3 + 2
-                nuc_ref_end = seq_end*3 + 2
-            
-
-            # Define the nucleotide sequence that correponds with the coordinates found above
-            nuc_ref_seq = str(nucleotide_seq[nuc_ref_start:nuc_ref_end])
-
-
-            # Initialize the list of lists that will hold the results in the following format: [spliced_seq, absolute_seq_start, absolute_seq_end]
-            result = []
-
-            ### CASE 1: The length of the sliding frame length is either less than or equal to the seq length
-            if input_frame_length > len(seq) or input_frame_length == len(seq):
-                result = "x" # result becomes the string "x", which will alow the code to ignore this sequence and move on to the next one
-                return result # return the result
-
-
-            ### CASE 2: The length of the input seq is greater than the sliding frame length
-            if len(seq) > input_frame_length:
-                primary_positions = [] # list that will hold the start positions of each each PEVK frame in the forward direction
-                
-                # Fill the primary_positions list the start locations of each frame with PEVK ratio greater than the ratio parameter
-                for i in range(0, len(seq) - input_frame_length):
-                    frame = seq[i:i+input_frame_length]
-                    counts = pevk_counter(frame)
-                    ratio = float(counts)/float(input_frame_length)
-                    if ratio >= PEVK_ratio:
-                        primary_positions.append(i)
-
-                ### CASE 2a: There are no frames with high PEVK content in the sequence
-                if primary_positions == []:
-                    result = "x" # The result is nullified, and the code will move on the next sequence
-                    return result
-
-                ### CASE 2b: There is at least one frame with a high PEVK ratio
-                else:
-                    # Create a list that contains distinct groupings of high PEVK ratio groupings
-                    group_positions = [] # the start points of each grouping
-                    groupings = [] # the list that will contain the actual groups
-                    temp_min = primary_positions[0]
-                    group_positions.append(temp_min)
-                    for i in range(1, len(primary_positions)-1):
-                        if primary_positions[i] - temp_min <= input_frame_length:
-                            temp_min = temp_min
-                        else:
-                            temp_min = primary_positions[i]
-                            group_positions.append(temp_min)
-                    
-                    # If there is only one starting position:
-                    if len(group_positions) == 1:
-                        groupings = [primary_positions]
-                    
-                    # If there are multiple starting positions:
-                    else:
-                        # Define the groups:
-                        for i in range(0,len(group_positions)):
-                            if i < len(group_positions) - 1:
-                                current_position = group_positions[i]
-                                next_position = group_positions[i+1]
-                                current_index = primary_positions.index(current_position)
-                                next_index = primary_positions.index(next_position)
-                                groupings.append(primary_positions[current_index:next_index])
-                            
-                            # Once we have arrived at the last item in group_positions:
-                            else:
-                                current_position = group_positions[i]
-                                current_index = primary_positions.index(current_position)
-                                groupings.append(primary_positions[current_index:])
-                    
-
-                    # Go through each sublist in groupings and find donor/acceptor splice sites:
-                    for j in range(0, len(groupings)):
-                        # Initialize list that will hold candidate donor sites (end of exon)
-                        donor_sites = []
-                        
-                        # Initialize list that will hold candidate acceptor sites (start of exon)
-                        acceptor_sites = []
-                        
-                        # Initialize the list that will hold difference in location between possible donor start sites and the PEVK region start site
-                        start_differences = []
-                        
-                        # Start with the list of primary positions. Find the median of that list.
-                        AA_starting_point = int(statistics.median(groupings[j]))
-                        
-                        # Where is this in the local nucleotide sequence?
-                        NT_starting_point = AA_starting_point*3 # This is the first letter of the codon encoding the median AA in the high PEVK region
-                        
-                        # First go backwards to look for the ACCEPTOR splice site
-                        for i in range(NT_starting_point,0,-1):
-                            # The rightmost letter (first letter of a codon) should be a G
-                            if i%3 == 0 and nuc_ref_seq[i] == "G":
-                                
-                                # The leftmost letter (last letter of a codon) should be an A
-                                if nuc_ref_seq[i-1] == "A":
-                                    
-                                    # If both of these requirements are met, add the location of G to acceptor_sites
-                                    acceptor_sites.append(i)
-                        
-                        # Is the acceptor site list empty? If so, this is not a real PEVK sequence!
-                        if acceptor_sites == []:
-                            result.append("x")
-                            continue
-                        
-                        # If there is an acceptor site:
-                        else:
-                            # We now want to know which acceptor site is closest to the first AA of primary positions. First define the starting position:
-                            PEVK_start = NT_starting_point
-                            
-                            # Then find the closest acceptor site to the start of the PEVK region:
-                            for x in acceptor_sites:
-                                diff = abs(PEVK_start - x)
-                                start_differences.append(diff)
-                            
-                            # The best guess G of the start splice site is the min of the differences
-                            acceptor_g_location = acceptor_sites[start_differences.index(min(start_differences))]
-                            
-                            # Now go forward to look for the DONOR splice site
-                            for i in range(NT_starting_point, len(nuc_ref_seq)-3):
-                                # The leftmost letter (third letter of a codon) should be an A
-                                if i%3 == 2 and nuc_ref_seq[i] == "A":
-                                    
-                                    # The second letter (first letter of a codon) should be a G
-                                    if (i+1)%3 == 0 and nuc_ref_seq[i+1] == "G":
-                                        
-                                        # The third letter (second letter of a codon) should be a G
-                                        if (i+2)%3 == 1 and nuc_ref_seq[i+2] == "G":
-                                            
-                                            # The fourth letter (third letter of a codon) should be a T
-                                            if (i+3)%3 == 2 and nuc_ref_seq[i+3] == "T":
-                                                
-                                                # If all of these requirements are met, add the location of the first G to donor sites:
-                                                donor_sites.append(i+1)
-                            
-
-                            # If there are no donor sites:
-                            if donor_sites == []:
-                                result.append("x")
-                                continue
-                            
-
-                            # If there is at least one donor site
-                            if donor_sites != []:
-
-                                # If there is only one possible donor site:
-                                if len(donor_sites) == 1:
-                                    
-                                    # This becomes the acceptor location
-                                    donor_g1_location = donor_sites[0]
-                                
-                                # If there is more than one possible acceptor site:
-                                if len(donor_sites) > 1:
-                                    end_differences = []
-                                    PEVK_end = (groupings[j][-1]+input_frame_length)*3
-                                    for x in donor_sites:
-                                        diff = abs(PEVK_end - x)
-                                        end_differences.append(diff)
-                                    
-                                    # The best guess G of the start splice site is the min of differences
-                                    donor_g1_location = donor_sites[end_differences.index(min(end_differences))]
-                                
-                                # Now extract the region between the donor and acceptor sites
-                                final_seq =  str(Seq(nuc_ref_seq[acceptor_g_location+3:donor_g1_location]).translate())
-
-                                # Define the relative start and end positions (within the local amino acid sequence) of the final sequence
-                                relative_seq_start = (acceptor_g_location/3)+1
-                                relative_seq_end = donor_g1_location/3
-                                
-                                # Define the relative start and end positions of the sequence within the whole amino acid sequence
-                                absolute_seq_start = seq_start + relative_seq_start
-                                absolute_seq_end = seq_start + relative_seq_end
-
-                                # Define the full sequence with no splice sites
-                                final_seq = seq[relative_seq_start:relative_seq_end]
-                                # Put the sequence and the start and end locations in the result list
-                                result.append((final_seq, absolute_seq_start, absolute_seq_end))
-
-                # Woohoo!
-                return result
-
         ################################## Main Code ##############################
         # Loop through the entire protein sequence, extracting each region between stop codons and running it through find_pevk
         
@@ -374,7 +377,7 @@ def pevk_finder(nt_seq, length, in_ratio, min_length, outpath, optional_outputs)
 
 
                     ### Run the sequence through the find_pevk helper function to find PEVK exons!
-                    pevk_seqs = find_pevk(seq, seq_start, seq_end)
+                    pevk_seqs = find_pevk(seq, seq_start, seq_end, identification, nucleotide_seq, input_frame_length, PEVK_ratio)
 
 
 
