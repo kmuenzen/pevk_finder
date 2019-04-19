@@ -1,3 +1,31 @@
+# Downloading required Python modules
+PEVK_Finder uses several modules that are not automatically installed with most versions of Python (Biopython and Statistics). The easiest way to install these packages is with the **pip** tool. If you do not already have pip installed on your machine, run the following commands:
+
+1. Download the get-pip.py file. The file will be downloaded to the current directory, and you may delete this file after step #2 (below) is complete:
+```bash
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+```
+2. Run get-pip.py. For most users, it is recommended to install packages for the current user with the --user flag. If you have admin priveleges on your machine, you may also use the sudo command and enter the admin password:
+```bash
+python get-pip.py --user
+```
+or
+```bash
+sudo python get-pip.py
+```
+
+Once pip is installed on your machine, install the required Python modules using the following commands. The same sudo/user rules apply:
+
+1. Install Biopython
+```bash
+pip install biopython --user
+```
+2. Install Statistics
+```bash
+pip install statistics --user
+```
+
+
 # Running the PEVK_Finder Program
 ## Inputs and Outputs
 ### Required Input
