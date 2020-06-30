@@ -9,13 +9,13 @@ exon_db=$6
 
 # Name all forward reading frames (species name in second an third positions in header of fast file)
 
-f1=$species_name"_frame_f1.fasta"
-f2=$species_name"_frame_f2.fasta"
-f3=$species_name"_frame_f3.fasta"
+f1="../data/frames/"$species_name"_frame_f1.fasta"
+f2="../data/frames/"$species_name"_frame_f2.fasta"
+f3="../data/frames/"$species_name"_frame_f3.fasta"
 
 
 # Run the PEVK finder
-python pevk_finder_ntsplice.py $f1 $f2 $f3 $nucleotide $frame_length $percent_pevk $min_length
+python3 pevk_finder_ntsplice.py $f1 $f2 $f3 $nucleotide $frame_length $percent_pevk $min_length
 
 # Define the outputs of the PEVK_finder
 protf1=$species_name"_frame_f1_PEVK_protein_final.fasta"
@@ -60,7 +60,7 @@ blast_csv=$species_name"_"$3"_"$4"_"$5"_.csv"
 names_csv="test_names_and_lengths_"$3"_"$4"_"$5".csv"
 
 # Move the csv files to a separate folder
-mv $blast_csv $names_csv "human_csv/"
+mv $blast_csv $names_csv "../data/mouse_csv/"
 
 # Remove the remaining unnecesary files
 rm -r *fblast*
