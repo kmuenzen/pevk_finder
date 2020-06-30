@@ -6,7 +6,7 @@ do
     do
         for c in 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
         do
-            ./pevk_new_copy.sh Mus_musculus mouse_ttn.fasta $a $b $c known_exons_mouse_nt
+            ./pevk_new_mouse.sh Mus_musculus ../data/ttn_seqs/Mus_musculus_ttn.fasta $a $b $c known_mouse_exons_db
         done
     done
 done
